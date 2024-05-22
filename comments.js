@@ -1,28 +1,33 @@
 // create web server
-var http = require('http');
-var url = require('url');
-var items = [];
+var express = require('express');
+var app = express();
+var bodyParser = require('body-parser');
+var fs = require('fs');
 
-var server = http.createServer(function(req, res){
-    switch (req.method) {
-        case 'POST':
-            var item = '';
-            req.setEncoding('utf8');
-            req.on('data', function(chunk){
-                item += chunk;
-            });
-            req.on('end', function(){
-                items.push(item);
-                res.end('OK\n');
-            });
-            break;
-        case 'GET':
-            items.forEach(function(item, i){
-                res.write(i + ') ' + item + '\n');
-            });
-            res.end();
-            break;
-    }
+// create application/x-www-form-urlencoded parser
+var urlencodedParser = bodyParser.urlencoded({ extended: false });
+
+// create application/json parser
+var jsonParser = bodyParser.json();
+
+var comments = require('./comments.json');
+
+app.get('/comments', function (req, res) {
+    res.json(comments);
 });
 
-server.listen(3000);
+app.post('/comments', jsonParser, function (req, res) {
+    comments.push(req.body);
+    fs.writeFile('./comments.json', JSON.stringify(comments), function (err) {
+        if (err) {
+            console.log(err);
+            res.status(500).send('Error saving comment');
+        } else {
+            res.status(201).send('Comment saved');
+        }
+    });
+});
+
+app.listen(3000, function () {
+    console.log('Example app listening on port 3000!');
+});
